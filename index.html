@@ -240,7 +240,7 @@
                             <label for="max-width" class="form-label">
                                 <i class="bi bi-arrows-expand text-success"></i> 每行最大宽度:
                             </label>
-                            <input type="number" id="max-width" class="form-control" value="70" min="10" max="2000">
+                            <input type="number" id="max-width" class="form-control" value="69" min="10" max="2000">
                         </div>
                     </div>
                 </div>
@@ -617,21 +617,14 @@
                     }
                     
                     // 第2步：在标点符号分段基础上，对超过字数的段落应用自定义断句词
-                    // 注意：从这一步开始才考虑最大宽度限制
-                    let finalSegments = [];
+                    let intermediateSegments = [];
                     
                     for (const segment of punctuationBasedSegments) {
-                        // 如果分段字数未超过限定字数，直接保留
-                        if (segment.length <= maxWidth) {
-                            finalSegments.push(segment);
-                            continue;
-                        }
-                        
-                        // 如果分段字数超过了限定字数，先尝试应用自定义断句词
-                        let processedSegment = segment;
-                        let hasCustomBreak = false;
-                        
+                        // 如果有自定义断句词，先应用自定义断句词
                         if (customBreakWords.length > 0) {
+                            let processedSegment = segment;
+                            let hasCustomBreak = false;
+                            
                             for (const word of customBreakWords) {
                                 if (word) {
                                     const regex = new RegExp(`(\\b${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b)`, 'g');
@@ -648,83 +641,80 @@
                                 const customSplitSegments = processedSegment.split('\n');
                                 for (const subSegment of customSplitSegments) {
                                     if (subSegment.trim()) {
-                                        finalSegments.push(subSegment.trim());
+                                        intermediateSegments.push(subSegment.trim());
                                     }
                                 }
-                                continue; // 已处理完此段落，跳到下一个
+                            } else {
+                                // 没有应用自定义断句词，保持原样
+                                intermediateSegments.push(segment);
+                            }
+                        } else {
+                            // 没有自定义断句词，直接添加
+                            intermediateSegments.push(segment);
+                        }
+                    }
+                    
+                    // 第3步：对所有段落进行中位数分段检查，确保每一行都符合宽度要求
+                    // 递归中位数分段函数，确保每一行都严格符合宽度要求
+                    function recursiveMidPointSplit(text) {
+                        if (text.length <= maxWidth) {
+                            return [text];
+                        }
+                        
+                        // 计算中位数分割点
+                        const midPoint = Math.floor(text.length / 2);
+                        
+                        // 寻找中位数附近最合适的分割点（空格位置）
+                        let bestSplitIndex = midPoint;
+                        
+                        // 在中位数前后20%范围内寻找空格
+                        const searchRange = Math.floor(text.length * 0.2);
+                        const searchStart = Math.max(0, midPoint - searchRange);
+                        const searchEnd = Math.min(text.length - 1, midPoint + searchRange);
+                        
+                        // 优先在中位数后面寻找空格
+                        for (let i = midPoint; i <= searchEnd; i++) {
+                            if (text[i] === ' ') {
+                                bestSplitIndex = i;
+                                break;
                             }
                         }
                         
-                        // 第3步：如果没有自定义断句词或自定义断句词没有生效，且段落仍然超长，按字数中位数分段
-                        if (!hasCustomBreak && segment.length > maxWidth) {
-                            // 计算中位数分割点
-                            const midPoint = Math.floor(segment.length / 2);
-                            
-                            // 寻找中位数附近最合适的分割点（空格位置）
-                            let bestSplitIndex = midPoint;
-                            
-                            // 在中位数前后20%范围内寻找空格
-                            const searchRange = Math.floor(segment.length * 0.2);
-                            const searchStart = Math.max(0, midPoint - searchRange);
-                            const searchEnd = Math.min(segment.length - 1, midPoint + searchRange);
-                            
-                            // 优先在中位数后面寻找空格
-                            for (let i = midPoint; i <= searchEnd; i++) {
-                                if (segment[i] === ' ') {
+                        // 如果后面没找到，在前面寻找空格
+                        if (bestSplitIndex === midPoint && text[midPoint] !== ' ') {
+                            for (let i = midPoint - 1; i >= searchStart; i--) {
+                                if (text[i] === ' ') {
                                     bestSplitIndex = i;
                                     break;
                                 }
                             }
-                            
-                            // 如果后面没找到，在前面寻找空格
-                            if (bestSplitIndex === midPoint && segment[midPoint] !== ' ') {
-                                for (let i = midPoint - 1; i >= searchStart; i--) {
-                                    if (segment[i] === ' ') {
-                                        bestSplitIndex = i;
-                                        break;
-                                    }
-                                }
-                            }
-                            
-                            // 进行分割
-                            const firstPart = segment.substring(0, bestSplitIndex).trim();
-                            const secondPart = segment.substring(bestSplitIndex + 1).trim();
-                            
-                            if (firstPart) finalSegments.push(firstPart);
-                            if (secondPart) {
-                                // 对第二部分用简单的单词分段处理，避免递归调用
-                                if (secondPart.length > maxWidth) {
-                                    // 用单词分段处理过长的第二部分
-                                    const words = secondPart.split(/\s+/);
-                                    let currentLine = [];
-                                    let currentLength = 0;
-                                    
-                                    for (const word of words) {
-                                        const wordLength = word.length;
-                                        const spaceLength = currentLength > 0 ? 1 : 0;
-                                        
-                                        if (currentLength + wordLength + spaceLength <= maxWidth) {
-                                            currentLine.push(word);
-                                            currentLength += wordLength + spaceLength;
-                                        } else {
-                                            if (currentLine.length > 0) {
-                                                finalSegments.push(currentLine.join(' '));
-                                            }
-                                            currentLine = [word];
-                                            currentLength = wordLength;
-                                        }
-                                    }
-                                    
-                                    if (currentLine.length > 0) {
-                                        finalSegments.push(currentLine.join(' '));
-                                    }
-                                } else {
-                                    finalSegments.push(secondPart);
-                                }
-                            }
-                        } else {
-                            // 如果没有超过限制或其他情况，直接添加
+                        }
+                        
+                        // 进行分割
+                        const firstPart = text.substring(0, bestSplitIndex).trim();
+                        const secondPart = text.substring(bestSplitIndex + 1).trim();
+                        
+                        // 递归处理每一部分，确保都符合宽度要求
+                        const results = [];
+                        if (firstPart) {
+                            results.push(...recursiveMidPointSplit(firstPart));
+                        }
+                        if (secondPart) {
+                            results.push(...recursiveMidPointSplit(secondPart));
+                        }
+                        
+                        return results;
+                    }
+                    
+                    // 对所有中间段落进行最终的宽度检查和中位数分段
+                    let finalSegments = [];
+                    for (const segment of intermediateSegments) {
+                        if (segment.length <= maxWidth) {
                             finalSegments.push(segment);
+                        } else {
+                            // 使用递归函数处理超长段落
+                            const splitResults = recursiveMidPointSplit(segment);
+                            finalSegments.push(...splitResults);
                         }
                     }
                     
