@@ -128,6 +128,19 @@
             box-shadow: 0 5px 15px rgba(255, 107, 53, 0.4);
         }
         
+        .btn-warning {
+            background: linear-gradient(135deg, #ffc107 0%, #ffb347 100%);
+            border: none;
+            color: #212529;
+        }
+        
+        .btn-warning:hover {
+            background: linear-gradient(135deg, #ffb347 0%, #ffc107 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 193, 7, 0.4);
+            color: #212529;
+        }
+        
         .result-area {
             white-space: pre;
             background: #f8f9fa;
@@ -337,9 +350,14 @@
                             格式化结果
                         </span>
                     </h5>
-                    <button id="copy-btn" class="btn btn-info btn-sm">
-                        <i class="bi bi-clipboard"></i> 复制文本
-                    </button>
+                    <div class="d-flex gap-2">
+                        <button id="remove-punctuation-btn" class="btn btn-warning btn-sm">
+                            <i class="bi bi-eraser"></i> 去除标点
+                        </button>
+                        <button id="copy-btn" class="btn btn-info btn-sm">
+                            <i class="bi bi-clipboard"></i> 复制文本
+                        </button>
+                    </div>
                 </div>
                 <div class="card-body">
                     <div id="output-text" class="result-area"></div>
@@ -399,6 +417,7 @@
             const saveBreakWordsBtn = document.getElementById('save-break-words');
             const clearBreakWordsBtn = document.getElementById('clear-break-words');
             const copyBtn = document.getElementById('copy-btn');
+            const removePunctuationBtn = document.getElementById('remove-punctuation-btn');
             
             // 加载保存的断句词
             if (localStorage.getItem('customBreakWords')) {
@@ -423,6 +442,45 @@
                     customBreakWordsInput.value = '';
                     alert('断句词已清除！');
                 }
+            });
+            
+            // 去除标点符号功能事件
+            removePunctuationBtn.addEventListener('click', function() {
+                let currentText = outputText.textContent;
+                
+                if (!currentText || !currentText.trim()) {
+                    alert('没有内容可以处理，请先格式化文本！');
+                    return;
+                }
+                
+                                 // 去除标点符号但保留成对符号的函数
+                 function removePunctuationKeepPairs(text) {
+                     return text
+                         // 删除单独的标点符号：句号、逗号、分号、冒号、感叹号、问号、顿号
+                         .replace(/[，。；：！？、]/g, ' ')
+                         // 删除英文单独标点符号
+                         .replace(/[,.;:!?]/g, ' ')
+                         // 保留成对标点符号：书名号《》、引号""''、括号（）【】()、破折号——、省略号……
+                         // 这些符号不进行删除处理
+                         // 清理多余的空格，但保留换行符：只处理空格和制表符
+                         .replace(/[ \t]+/g, ' ')
+                         // 清理行首行末的空格，但保留换行符
+                         .replace(/^[ \t]+|[ \t]+$/gm, '');
+                 }
+                
+                const processedText = removePunctuationKeepPairs(currentText);
+                outputText.textContent = processedText;
+                
+                // 临时改变按钮文字和颜色提供反馈
+                const originalText = removePunctuationBtn.innerHTML;
+                const originalColor = removePunctuationBtn.style.backgroundColor;
+                removePunctuationBtn.innerHTML = '<i class="bi bi-check-circle"></i> 已处理';
+                removePunctuationBtn.style.backgroundColor = '#28a745';
+                
+                setTimeout(() => {
+                    removePunctuationBtn.innerHTML = originalText;
+                    removePunctuationBtn.style.backgroundColor = originalColor;
+                }, 2000);
             });
             
             // 复制功能事件
