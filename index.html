@@ -1,0 +1,1108 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文本格式化工具</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Microsoft YaHei', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+        
+        .main-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            margin: 2rem auto;
+            max-width: 1200px;
+        }
+        
+        .header-section {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            border-radius: 20px 20px 0 0;
+            padding: 2rem;
+            text-align: center;
+        }
+        
+        .header-section h1 {
+            margin: 0;
+            font-weight: 300;
+            font-size: 2.5rem;
+        }
+        
+        .header-section p {
+            margin: 0.5rem 0 0 0;
+            opacity: 0.9;
+        }
+        
+        .content-section {
+            padding: 2rem;
+        }
+        
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            margin-bottom: 1.5rem;
+        }
+        
+        .card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px 15px 0 0 !important;
+            border: none;
+            padding: 1rem 1.5rem;
+        }
+        
+        .form-label {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 0.5rem;
+        }
+        
+        .form-control, .form-select {
+            border-radius: 10px;
+            border: 1px solid #e3e6f0;
+            padding: 0.75rem 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .form-control:focus, .form-select:focus {
+            border-color: #4facfe;
+            box-shadow: 0 0 0 0.2rem rgba(79, 172, 254, 0.25);
+        }
+        
+        .btn {
+            border-radius: 10px;
+            padding: 0.75rem 1.5rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            border: none;
+        }
+        
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(79, 172, 254, 0.4);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            border: none;
+        }
+        
+        .btn-success:hover {
+            background: linear-gradient(135deg, #38ef7d 0%, #11998e 100%);
+            transform: translateY(-2px);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
+            border: none;
+        }
+        
+        .btn-info {
+            background: linear-gradient(135deg, #ff9a56 0%, #ff6b35 100%);
+            border: none;
+        }
+        
+        .btn-info:hover {
+            background: linear-gradient(135deg, #ff6b35 0%, #ff9a56 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 107, 53, 0.4);
+        }
+        
+        .result-area {
+            white-space: pre;
+            background: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 10px;
+            min-height: 200px;
+            overflow-x: auto;
+            overflow-y: auto;
+            font-family: 'Courier New', 'Monaco', monospace;
+            border: 1px solid #e3e6f0;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+        
+        .icon-text {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .feature-badge {
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            color: #8b4513;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        
+        .custom-textarea {
+            height: 180px;
+            resize: vertical;
+        }
+        
+        @media (max-width: 768px) {
+            .main-container {
+                margin: 1rem;
+                border-radius: 15px;
+            }
+            
+            .header-section {
+                padding: 1.5rem 1rem;
+                border-radius: 15px 15px 0 0;
+            }
+            
+            .header-section h1 {
+                font-size: 2rem;
+            }
+            
+            .content-section {
+                padding: 1.5rem 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <!-- 头部区域 -->
+        <div class="header-section">
+            <h1><i class="bi bi-textarea-t"></i> 智能文本格式化工具</h1>
+            <p>支持多种分段模式的专业文本处理工具</p>
+        </div>
+        
+        <!-- 内容区域 -->
+        <div class="content-section">
+            <!-- 输入文本卡片 -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <span class="icon-text">
+                            <i class="bi bi-pencil-square"></i>
+                            文本输入
+                        </span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <label for="input-text" class="form-label">输入需要格式化的文本:</label>
+                    <textarea id="input-text" class="form-control custom-textarea" placeholder="请在此输入长文本..."></textarea>
+                </div>
+            </div>
+            
+            <!-- 格式化设置卡片 -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <span class="icon-text">
+                            <i class="bi bi-gear"></i>
+                            格式化设置
+                            <span class="feature-badge">推荐按标点符号分段</span>
+                        </span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="format-mode" class="form-label">
+                                <i class="bi bi-list-ul text-primary"></i> 分段模式:
+                            </label>
+                            <select id="format-mode" class="form-select">
+                                <option value="char">按字符分段</option>
+                                <option value="word">按单词分段</option>
+                                <option value="sentence">按句子分段</option>
+                                <option value="punctuation" selected>⭐ 按标点符号分段 (推荐)</option>
+                                <option value="word_and_punctuation">按单词和标点符号分段</option>
+                                <option value="natural">自然语言分段</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label for="max-width" class="form-label">
+                                <i class="bi bi-arrows-expand text-success"></i> 每行最大宽度:
+                            </label>
+                            <input type="number" id="max-width" class="form-control" value="70" min="10" max="2000">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 替换功能卡片 -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <span class="icon-text">
+                            <i class="bi bi-arrow-left-right"></i>
+                            文本替换 (可选)
+                        </span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label for="find-text" class="form-label">查找:</label>
+                            <input type="text" id="find-text" class="form-control" placeholder="输入要替换的文本">
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <label for="replace-text" class="form-label">替换为:</label>
+                            <input type="text" id="replace-text" class="form-control" placeholder="输入替换后的文本">
+                        </div>
+                        
+                        <div class="col-md-4 d-flex align-items-end">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="enable-replace">
+                                <label class="form-check-label" for="enable-replace">
+                                    启用替换功能
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 自定义断句卡片 -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <span class="icon-text">
+                            <i class="bi bi-scissors"></i>
+                            自定义断句 (高级)
+                        </span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-9">
+                            <label for="custom-break-words" class="form-label">自定义断句词（用逗号分隔）:</label>
+                            <input type="text" id="custom-break-words" class="form-control" placeholder="输入要作为断句点的单词或短语，如: 例如,比如,例子">
+                            <div class="form-text">
+                                <i class="bi bi-info-circle text-primary"></i>
+                                此功能在"按标点符号分段"、"按单词和标点符号分段"和"自然语言分段"模式下有效
+                            </div>
+                            <div class="d-flex gap-2 mt-2">
+                                <button id="save-break-words" class="btn btn-success btn-sm flex-fill">
+                                    <i class="bi bi-save"></i> 保存断句词
+                                </button>
+                                <button id="clear-break-words" class="btn btn-danger btn-sm flex-fill">
+                                    <i class="bi bi-trash"></i> 清除断句词
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-3 d-flex align-items-end">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="enable-custom-break" checked>
+                                <label class="form-check-label" for="enable-custom-break">
+                                    启用自定义断句
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 操作按钮 -->
+            <div class="text-center mb-4">
+                <button id="format-btn" class="btn btn-primary btn-lg">
+                    <i class="bi bi-play-circle"></i> 格式化文本
+                </button>
+            </div>
+            
+            <!-- 结果输出卡片 -->
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <span class="icon-text">
+                            <i class="bi bi-file-text"></i>
+                            格式化结果
+                        </span>
+                    </h5>
+                    <button id="copy-btn" class="btn btn-info btn-sm">
+                        <i class="bi bi-clipboard"></i> 复制文本
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div id="output-text" class="result-area"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 页脚 -->
+    <footer class="text-center py-4">
+        <div class="container">
+            <p class="mb-0 text-light">
+                <i class="bi bi-heart-fill text-danger"></i>
+                文本格式化工具 &copy; 2025 - 让文本处理更简单
+            </p>
+        </div>
+         </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 显示欢迎弹窗
+            Swal.fire({
+                title: '🎉 欢迎使用文本格式化工具',
+                html: `
+                    <div style="text-align: left; line-height: 1.6;">
+                        <p style="text-align: center; color: #2196F3; font-size: 18px; margin-bottom: 20px;">
+                            💡 推荐使用 <strong style="color: #e74c3c;">按标点符号分段</strong> 模式，其它模式可能存在未知问题
+                        </p>
+                        <div style="background-color: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                            <h4 style="color: #333; margin-bottom: 10px;">📋 按标点符号分段逻辑：</h4>
+                            <ol style="margin: 0; padding-left: 20px;">
+                                <li style="margin-bottom: 8px;"><strong>第一步：</strong>先按标点符号断句（底层逻辑，优先级最高）</li>
+                                <li style="margin-bottom: 8px;"><strong>第二步：</strong>根据自定义单词断句（只断超过字符限制的句子）</li>
+                                <li style="margin-bottom: 8px;"><strong>第三步：</strong>如果无自定义单词，则取中位数断句</li>
+                            </ol>
+                        </div>
+                        <p style="text-align: center; color: #666; font-size: 14px;">
+                            💡 这种分段方式能保持文本的逻辑完整性，同时提供灵活的自定义选项
+                        </p>
+                    </div>
+                `,
+                icon: 'info',
+                confirmButtonText: '开始使用',
+                confirmButtonColor: '#4CAF50',
+                width: '600px',
+                backdrop: true,
+                allowOutsideClick: false
+            });
+            
+            // 获取DOM元素
+            const inputText = document.getElementById('input-text');
+            const formatMode = document.getElementById('format-mode');
+            const maxWidth = document.getElementById('max-width');
+            const formatBtn = document.getElementById('format-btn');
+            const outputText = document.getElementById('output-text');
+            const customBreakWordsInput = document.getElementById('custom-break-words');
+            const saveBreakWordsBtn = document.getElementById('save-break-words');
+            const clearBreakWordsBtn = document.getElementById('clear-break-words');
+            const copyBtn = document.getElementById('copy-btn');
+            
+            // 加载保存的断句词
+            if (localStorage.getItem('customBreakWords')) {
+                customBreakWordsInput.value = localStorage.getItem('customBreakWords');
+            }
+            
+            // 保存断句词事件
+            saveBreakWordsBtn.addEventListener('click', function() {
+                const breakWords = customBreakWordsInput.value.trim();
+                if (breakWords) {
+                    localStorage.setItem('customBreakWords', breakWords);
+                    alert('断句词已保存！');
+                } else {
+                    alert('请先输入断句词再保存');
+                }
+            });
+            
+            // 清除断句词事件
+            clearBreakWordsBtn.addEventListener('click', function() {
+                if (confirm('确定要清除保存的断句词吗？')) {
+                    localStorage.removeItem('customBreakWords');
+                    customBreakWordsInput.value = '';
+                    alert('断句词已清除！');
+                }
+            });
+            
+            // 复制功能事件
+            copyBtn.addEventListener('click', async function() {
+                const textToCopy = outputText.textContent;
+                
+                if (!textToCopy || !textToCopy.trim()) {
+                    alert('没有内容可以复制，请先格式化文本！');
+                    return;
+                }
+                
+                try {
+                    // 使用现代 Clipboard API
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        await navigator.clipboard.writeText(textToCopy);
+                        // 临时改变按钮文字和颜色提供反馈
+                        const originalText = copyBtn.textContent;
+                        const originalColor = copyBtn.style.backgroundColor;
+                        copyBtn.textContent = '复制成功！';
+                        copyBtn.style.backgroundColor = '#4CAF50';
+                        
+                        setTimeout(() => {
+                            copyBtn.textContent = originalText;
+                            copyBtn.style.backgroundColor = originalColor;
+                        }, 2000);
+                    } else {
+                        // 降级到传统方法
+                        const textArea = document.createElement('textarea');
+                        textArea.value = textToCopy;
+                        textArea.style.position = 'fixed';
+                        textArea.style.left = '-999999px';
+                        textArea.style.top = '-999999px';
+                        document.body.appendChild(textArea);
+                        textArea.focus();
+                        textArea.select();
+                        
+                        if (document.execCommand('copy')) {
+                            // 临时改变按钮文字和颜色提供反馈
+                            const originalText = copyBtn.textContent;
+                            const originalColor = copyBtn.style.backgroundColor;
+                            copyBtn.textContent = '复制成功！';
+                            copyBtn.style.backgroundColor = '#4CAF50';
+                            
+                            setTimeout(() => {
+                                copyBtn.textContent = originalText;
+                                copyBtn.style.backgroundColor = originalColor;
+                            }, 2000);
+                        } else {
+                            alert('复制失败，请手动选择文本进行复制');
+                        }
+                        
+                        document.body.removeChild(textArea);
+                    }
+                } catch (error) {
+                    console.error('复制失败:', error);
+                    alert('复制失败，请手动选择文本进行复制');
+                }
+            });
+            
+            // 按钮点击事件
+            formatBtn.addEventListener('click', function() {
+                try {
+                    const text = inputText.value;
+                    const mode = formatMode.value;
+                    const width = parseInt(maxWidth.value);
+                    
+                    if (!text.trim()) {
+                        outputText.textContent = "请输入要格式化的文本";
+                        return;
+                    }
+                    
+                    // 先执行替换
+                    let processedText = text;
+                    const enableReplace = document.getElementById('enable-replace').checked;
+                    const findText = document.getElementById('find-text').value;
+                    const replaceText = document.getElementById('replace-text').value;
+                    
+                    if (enableReplace && findText) {
+                        // 创建全局正则表达式进行替换
+                        const regex = new RegExp(findText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+                        processedText = processedText.replace(regex, replaceText);
+                    }
+                    
+                    // 获取自定义断句词
+                    const enableCustomBreak = document.getElementById('enable-custom-break').checked;
+                    const customBreakWords = enableCustomBreak && customBreakWordsInput.value.trim() ? 
+                        customBreakWordsInput.value.split(',').map(word => word.trim()).filter(word => word) : 
+                        [];
+                    
+                    // 格式化文本
+                    const result = formatText(processedText, width, mode, customBreakWords);
+                    outputText.textContent = result;
+                } catch (error) {
+                    console.error('格式化文本时发生错误:', error);
+                    outputText.textContent = "格式化失败，请检查输入内容或刷新页面重试";
+                }
+            });
+            
+            // 格式化函数
+            function formatText(text, maxWidth = 80, mode = 'char', customBreakWords = []) {
+                // 预处理：将引号内的内容保护起来（quotes模式除外）
+                const quotedTexts = [];
+                let processedText = text;
+                
+                // 只有在非quotes模式下才预处理引号内容
+                if (mode !== 'quotes') {
+                    processedText = text.replace(/"([^"]*)"/g, function(match, content) {
+                        // 将引号内容替换为特殊标记
+                        const placeholder = `__QUOTED_TEXT_${quotedTexts.length}__`;
+                        quotedTexts.push(content);
+                        return placeholder;
+                    });
+                }
+                
+                let result;
+                
+                if (mode === 'char') {
+                    // 按字符数分段
+                    const resultArray = [];
+                    for (let i = 0; i < processedText.length; i += maxWidth) {
+                        resultArray.push(processedText.substring(i, i + maxWidth));
+                    }
+                    result = resultArray.join('\n');
+                    
+                } else if (mode === 'word') {
+                    // 按单词分段，避免单词被截断
+                    const words = processedText.split(/\s+/);
+                    const lines = [];
+                    let currentLine = [];
+                    let currentLength = 0;
+                    
+                    for (const word of words) {
+                        const wordLength = word.length;
+                        const spaceLength = currentLength > 0 ? 1 : 0;
+                        
+                        if (currentLength + wordLength + spaceLength <= maxWidth) {
+                            currentLine.push(word);
+                            currentLength += wordLength + spaceLength;
+                        } else {
+                            lines.push(currentLine.join(' '));
+                            currentLine = [word];
+                            currentLength = wordLength;
+                        }
+                    }
+                    
+                    if (currentLine.length > 0) {
+                        lines.push(currentLine.join(' '));
+                    }
+                    
+                    result = lines.join('\n');
+                    
+                } else if (mode === 'sentence') {
+                    // 按句子分段
+                    // 修复：同时匹配中英文句号、问号、感叹号，且允许感叹号后无空格的情况
+                    const sentences = processedText.split(/(?<=[.!?。！？])\s*(?=\S|$)/);
+                    result = sentences.join('\n');
+                    
+                } else if (mode === 'punctuation') {
+                    // 按标点符号分段 - 重写逻辑：标点符号 → 自定义断句 → 中位数分段
+                    
+                    // 第1步：按标点符号分段（底层逻辑，优先级最高）
+                    // 完全按标点符号分段，不考虑最大宽度限制
+                    // 匹配中英文各种标点符号，但排除词中的撇号和引号
+                    let punctuationSegments = processedText.split(/([,.;:!?，。；：！？、（）《》【】]|(?<!\w)'(?!\w)|(?<!\w)'(?!\w))/);
+                    
+                    // 清理和重组分段，将标点符号与前面的文本合并
+                    const punctuationBasedSegments = [];
+                    let currentSegment = '';
+                    
+                    for (let i = 0; i < punctuationSegments.length; i++) {
+                        const part = punctuationSegments[i];
+                        
+                        if (!part) continue; // 跳过空字符串
+                        
+                        // 如果是标点符号，与前面的内容合并
+                        if (/^[,.;:!?，。；：！？、（）《》【】'']$/.test(part)) {
+                            currentSegment += part;
+                            // 标点符号后结束当前分段
+                            if (currentSegment.trim()) {
+                                punctuationBasedSegments.push(currentSegment.trim());
+                            }
+                            currentSegment = '';
+                        } else {
+                            // 如果不是标点符号，累积到当前分段
+                            currentSegment += part;
+                        }
+                    }
+                    
+                    // 处理最后一个分段
+                    if (currentSegment.trim()) {
+                        punctuationBasedSegments.push(currentSegment.trim());
+                    }
+                    
+                    // 第2步：在标点符号分段基础上，对超过字数的段落应用自定义断句词
+                    // 注意：从这一步开始才考虑最大宽度限制
+                    let finalSegments = [];
+                    
+                    for (const segment of punctuationBasedSegments) {
+                        // 如果分段字数未超过限定字数，直接保留
+                        if (segment.length <= maxWidth) {
+                            finalSegments.push(segment);
+                            continue;
+                        }
+                        
+                        // 如果分段字数超过了限定字数，先尝试应用自定义断句词
+                        let processedSegment = segment;
+                        let hasCustomBreak = false;
+                        
+                        if (customBreakWords.length > 0) {
+                            for (const word of customBreakWords) {
+                                if (word) {
+                                    const regex = new RegExp(`(\\b${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b)`, 'g');
+                                    const beforeReplace = processedSegment;
+                                    processedSegment = processedSegment.replace(regex, '\n$1');
+                                    if (processedSegment !== beforeReplace) {
+                                        hasCustomBreak = true;
+                                    }
+                                }
+                            }
+                            
+                            // 如果应用了自定义断句词，按换行符分割
+                            if (hasCustomBreak) {
+                                const customSplitSegments = processedSegment.split('\n');
+                                for (const subSegment of customSplitSegments) {
+                                    if (subSegment.trim()) {
+                                        finalSegments.push(subSegment.trim());
+                                    }
+                                }
+                                continue; // 已处理完此段落，跳到下一个
+                            }
+                        }
+                        
+                        // 第3步：如果没有自定义断句词或自定义断句词没有生效，且段落仍然超长，按字数中位数分段
+                        if (!hasCustomBreak && segment.length > maxWidth) {
+                            // 计算中位数分割点
+                            const midPoint = Math.floor(segment.length / 2);
+                            
+                            // 寻找中位数附近最合适的分割点（空格位置）
+                            let bestSplitIndex = midPoint;
+                            
+                            // 在中位数前后20%范围内寻找空格
+                            const searchRange = Math.floor(segment.length * 0.2);
+                            const searchStart = Math.max(0, midPoint - searchRange);
+                            const searchEnd = Math.min(segment.length - 1, midPoint + searchRange);
+                            
+                            // 优先在中位数后面寻找空格
+                            for (let i = midPoint; i <= searchEnd; i++) {
+                                if (segment[i] === ' ') {
+                                    bestSplitIndex = i;
+                                    break;
+                                }
+                            }
+                            
+                            // 如果后面没找到，在前面寻找空格
+                            if (bestSplitIndex === midPoint && segment[midPoint] !== ' ') {
+                                for (let i = midPoint - 1; i >= searchStart; i--) {
+                                    if (segment[i] === ' ') {
+                                        bestSplitIndex = i;
+                                        break;
+                                    }
+                                }
+                            }
+                            
+                            // 进行分割
+                            const firstPart = segment.substring(0, bestSplitIndex).trim();
+                            const secondPart = segment.substring(bestSplitIndex + 1).trim();
+                            
+                            if (firstPart) finalSegments.push(firstPart);
+                            if (secondPart) {
+                                // 对第二部分用简单的单词分段处理，避免递归调用
+                                if (secondPart.length > maxWidth) {
+                                    // 用单词分段处理过长的第二部分
+                                    const words = secondPart.split(/\s+/);
+                                    let currentLine = [];
+                                    let currentLength = 0;
+                                    
+                                    for (const word of words) {
+                                        const wordLength = word.length;
+                                        const spaceLength = currentLength > 0 ? 1 : 0;
+                                        
+                                        if (currentLength + wordLength + spaceLength <= maxWidth) {
+                                            currentLine.push(word);
+                                            currentLength += wordLength + spaceLength;
+                                        } else {
+                                            if (currentLine.length > 0) {
+                                                finalSegments.push(currentLine.join(' '));
+                                            }
+                                            currentLine = [word];
+                                            currentLength = wordLength;
+                                        }
+                                    }
+                                    
+                                    if (currentLine.length > 0) {
+                                        finalSegments.push(currentLine.join(' '));
+                                    }
+                                } else {
+                                    finalSegments.push(secondPart);
+                                }
+                            }
+                        } else {
+                            // 如果没有超过限制或其他情况，直接添加
+                            finalSegments.push(segment);
+                        }
+                    }
+                    
+                    result = finalSegments.join('\n');
+                    
+                } else if (mode === 'word_and_punctuation') {
+                    // 按单词和标点符号分段
+                    // 先按标点符号分段，但排除词中的撇号(apostrophe)和引号
+                    let text = processedText.replace(/([,.;:!?，。；：！？、（）《》【】]|(?<!\w)'(?!\w)|(?<!\w)'(?!\w))/g, '$1\n');
+                    
+                    // 应用自定义断句词 - 只对超过最大宽度的段落应用
+                    if (customBreakWords.length > 0) {
+                        const lines = text.split('\n');
+                        const newLines = [];
+                        
+                        for (const line of lines) {
+                            // 只有当段落长度超过最大宽度时，才应用自定义断句词
+                            if (line.length > maxWidth) {
+                                let processedLine = line;
+                                // 为每个自定义断句词创建正则表达式并应用
+                                for (const word of customBreakWords) {
+                                    if (word) {
+                                        const regex = new RegExp(`(\\b${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b)`, 'g');
+                                        processedLine = processedLine.replace(regex, '\n$1');
+                                    }
+                                }
+                                // 将处理后的行按断句词拆分并添加到结果中
+                                newLines.push(...processedLine.split('\n'));
+                            } else {
+                                newLines.push(line);
+                            }
+                        }
+                        text = newLines.join('\n');
+                    }
+                    
+                    const segments = text.split('\n');
+                    const resultArray = [];
+                    
+                    // 对每个分段再按单词分段
+                    for (const segment of segments) {
+                        if (!segment.trim()) continue;
+                        
+                        const words = segment.split(/\s+/);
+                        const lines = [];
+                        let currentLine = [];
+                        let currentLength = 0;
+                        
+                        for (const word of words) {
+                            const wordLength = word.length;
+                            const spaceLength = currentLength > 0 ? 1 : 0;
+                            
+                            if (currentLength + wordLength + spaceLength <= maxWidth) {
+                                currentLine.push(word);
+                                currentLength += wordLength + spaceLength;
+                            } else {
+                                lines.push(currentLine.join(' '));
+                                currentLine = [word];
+                                currentLength = wordLength;
+                            }
+                        }
+                        
+                        if (currentLine.length > 0) {
+                            lines.push(currentLine.join(' '));
+                        }
+                        
+                        resultArray.push(lines.join('\n'));
+                    }
+                    
+                    result = resultArray.join('\n');
+                    
+                } else if (mode === 'natural') {
+                    // 自然语言分段 - 重写逻辑：先严格按标点符号分段，再对超过字数的分段进行自然语言处理
+                    
+                    // 第一步：严格按照标点符号进行分段（底层逻辑，不可改动）
+                    // 匹配中英文各种标点符号，但排除词中的撇号和引号
+                    let punctuationSegments = processedText.split(/([,.;:!?，。；：！？、（）《》【】]|(?<!\w)'(?!\w)|(?<!\w)'(?!\w))/);
+                    
+                    // 清理和重组分段，将标点符号与前面的文本合并
+                    const cleanedSegments = [];
+                    let currentSegment = '';
+                    
+                    for (let i = 0; i < punctuationSegments.length; i++) {
+                        const part = punctuationSegments[i];
+                        
+                        if (!part) continue; // 跳过空字符串
+                        
+                        // 如果是标点符号，与前面的内容合并
+                        if (/^[,.;:!?，。；：！？、（）《》【】'']$/.test(part)) {
+                            currentSegment += part;
+                            // 标点符号后结束当前分段
+                            if (currentSegment.trim()) {
+                                cleanedSegments.push(currentSegment.trim());
+                            }
+                            currentSegment = '';
+                        } else {
+                            // 如果不是标点符号，累积到当前分段
+                            currentSegment += part;
+                        }
+                    }
+                    
+                    // 处理最后一个分段
+                    if (currentSegment.trim()) {
+                        cleanedSegments.push(currentSegment.trim());
+                    }
+                    
+                    // 第二步：判断每个分段的字数，对超过限定字数的分段进行自然语言处理
+                    const finalSegments = [];
+                    
+                    for (const segment of cleanedSegments) {
+                        // 如果分段字数未超过限定字数，直接保留
+                        if (segment.length <= maxWidth) {
+                            finalSegments.push(segment);
+                            continue;
+                        }
+                        
+                        // 如果分段字数超过了限定字数，进行自然语言处理
+                        let processedSegment = segment;
+                        
+                        // 应用自定义断句词（如果启用且有设置） - 注意：只在超长分段上应用
+                        if (customBreakWords.length > 0) {
+                            for (const word of customBreakWords) {
+                                if (word) {
+                                    const regex = new RegExp(`(\\b${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b)`, 'g');
+                                    processedSegment = processedSegment.replace(regex, '\n$1');
+                                }
+                            }
+                            
+                            // 如果应用了自定义断句词，按换行符分割并检查每个子段
+                            const customSplitSegments = processedSegment.split('\n');
+                            for (const subSegment of customSplitSegments) {
+                                if (!subSegment.trim()) continue;
+                                
+                                if (subSegment.length <= maxWidth) {
+                                    finalSegments.push(subSegment.trim());
+                                } else {
+                                    // 如果子段仍然超长，用单词分段
+                                    const words = subSegment.trim().split(/\s+/);
+                                    let currentLine = [];
+                                    let currentLength = 0;
+                                    
+                                    for (const word of words) {
+                                        const wordLength = word.length;
+                                        const spaceLength = currentLength > 0 ? 1 : 0;
+                                        
+                                        if (currentLength + wordLength + spaceLength <= maxWidth) {
+                                            currentLine.push(word);
+                                            currentLength += wordLength + spaceLength;
+                                        } else {
+                                            if (currentLine.length > 0) {
+                                                finalSegments.push(currentLine.join(' '));
+                                            }
+                                            currentLine = [word];
+                                            currentLength = wordLength;
+                                        }
+                                    }
+                                    
+                                    if (currentLine.length > 0) {
+                                        finalSegments.push(currentLine.join(' '));
+                                    }
+                                }
+                            }
+                        } else {
+                                                         // 没有自定义断句词，使用自然语言连接词进行分段
+                            const naturalBreakPoints = [
+                                // 英文常见的连接词和短语
+                                /\s+(and|but|however|therefore|moreover|furthermore|consequently|nevertheless)\s+/gi,
+                                /\s+(in\s+addition|on\s+the\s+other\s+hand|for\s+example|in\s+fact|as\s+a\s+result)\s+/gi,
+                                /\s+(in\s+contrast|instead|meanwhile|whereas|though|although|unless|since|while|because|yet|still)\s+/gi,
+                                
+                                // 中文常见连接词和短语
+                                /(然而|但是|不过|因此|所以|因而|此外|另外|而且|况且|不仅如此|与此同时|相反|总之|总而言之|尽管如此)/g
+                            ];
+                            
+                            let subSegments = [processedSegment];
+                            
+                            // 在自然停顿处进行分段 - 只有在分段后仍需要进一步分段时才进行
+                            for (const pattern of naturalBreakPoints) {
+                                let newSubSegments = [];
+                                
+                                for (const subSegment of subSegments) {
+                                    if (subSegment.length <= maxWidth) {
+                                        newSubSegments.push(subSegment);
+                                        continue;
+                                    }
+                                    
+                                    // 使用正则表达式找到所有匹配的连接词位置
+                                    const matches = [];
+                                    let match;
+                                    const regex = new RegExp(pattern.source, pattern.flags);
+                                    
+                                    while ((match = regex.exec(subSegment)) !== null) {
+                                        matches.push({
+                                            index: match.index,
+                                            length: match[0].length,
+                                            text: match[0]
+                                        });
+                                        // 防止无限循环
+                                        if (!pattern.global) break;
+                                    }
+                                    
+                                    if (matches.length > 0) {
+                                        let bestSplit = null;
+                                        
+                                        // 找到最佳的分割点：分割后两部分都尽可能接近但不超过maxWidth
+                                        for (const matchInfo of matches) {
+                                            const beforePart = subSegment.substring(0, matchInfo.index).trim();
+                                            const afterStart = matchInfo.index + matchInfo.length;
+                                            const afterPart = subSegment.substring(afterStart).trim();
+                                            const afterWithConnector = matchInfo.text.trim() + ' ' + afterPart;
+                                            
+                                            // 检查分割是否有意义：两部分都应该比原文本短，并且至少一部分超过了maxWidth
+                                            if (beforePart && afterPart && 
+                                                (beforePart.length > maxWidth || afterWithConnector.length > maxWidth)) {
+                                                
+                                                // 如果前半部分不超过maxWidth，而后半部分超过，这是一个好的分割点
+                                                if (beforePart.length <= maxWidth && afterWithConnector.length > maxWidth) {
+                                                    bestSplit = {
+                                                        before: beforePart,
+                                                        after: afterWithConnector
+                                                    };
+                                                    break;
+                                                }
+                                                // 如果两部分都超过maxWidth，也可以分割（至少减少了一部分的长度）
+                                                else if (beforePart.length > maxWidth && afterWithConnector.length > maxWidth) {
+                                                    bestSplit = {
+                                                        before: beforePart,
+                                                        after: afterWithConnector
+                                                    };
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                        
+                                        if (bestSplit) {
+                                            newSubSegments.push(bestSplit.before);
+                                            newSubSegments.push(bestSplit.after);
+                                        } else {
+                                            // 没有找到合适的分割点，保持原样
+                                            newSubSegments.push(subSegment);
+                                        }
+                                    } else {
+                                        newSubSegments.push(subSegment);
+                                    }
+                                }
+                                
+                                subSegments = newSubSegments.filter(s => s && s.trim());
+                            }
+                            
+                            // 处理结果，只对显著超长的子段进行单词分段
+                            for (const subSegment of subSegments) {
+                                if (!subSegment.trim()) continue;
+                                
+                                // 给予一定的宽容度：如果超出不多（比如不超过maxWidth的1.2倍），就保持原样
+                                if (subSegment.length <= maxWidth * 1.2) {
+                                    finalSegments.push(subSegment.trim());
+                                } else {
+                                    // 只有显著超长的子段才用单词分段处理
+                                    const words = subSegment.trim().split(/\s+/);
+                                    let currentLine = [];
+                                    let currentLength = 0;
+                                    
+                                    for (const word of words) {
+                                        const wordLength = word.length;
+                                        const spaceLength = currentLength > 0 ? 1 : 0;
+                                        
+                                        if (currentLength + wordLength + spaceLength <= maxWidth) {
+                                            currentLine.push(word);
+                                            currentLength += wordLength + spaceLength;
+                                        } else {
+                                            if (currentLine.length > 0) {
+                                                finalSegments.push(currentLine.join(' '));
+                                            }
+                                            currentLine = [word];
+                                            currentLength = wordLength;
+                                        }
+                                    }
+                                    
+                                    if (currentLine.length > 0) {
+                                        finalSegments.push(currentLine.join(' '));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    result = finalSegments.join('\n');
+                    
+                } else if (mode === 'quotes') {
+                    // 按引号断句 - 在每个双引号结束后断句
+                    
+                    // 在引号后断句
+                    result = text.replace(/"([^"]*)"/g, '"$1"\n');
+                    
+                    // 处理过长的行（不在引号中的文本）
+                    if (result.length > 0) {
+                        const lines = result.split('\n');
+                        const processedLines = [];
+                        
+                        for (const line of lines) {
+                            // 跳过空行
+                            if (!line.trim()) {
+                                continue;
+                            }
+                            
+                            // 检查行是否太长，如果是则进一步分段
+                            if (line.length > maxWidth) {
+                                // 按单词分段
+                                const words = line.split(/\s+/);
+                                let currentLine = [];
+                                let currentLength = 0;
+                                
+                                for (const word of words) {
+                                    const wordLength = word.length;
+                                    const spaceLength = currentLength > 0 ? 1 : 0;
+                                    
+                                    if (currentLength + wordLength + spaceLength <= maxWidth) {
+                                        currentLine.push(word);
+                                        currentLength += wordLength + spaceLength;
+                                    } else {
+                                        processedLines.push(currentLine.join(' '));
+                                        currentLine = [word];
+                                        currentLength = wordLength;
+                                    }
+                                }
+                                
+                                if (currentLine.length > 0) {
+                                    processedLines.push(currentLine.join(' '));
+                                }
+                            } else {
+                                processedLines.push(line);
+                            }
+                        }
+                        
+                        result = processedLines.join('\n');
+                    }
+                    
+                    // 直接返回结果，不需要恢复引号内容
+                    return result;
+                    
+                } else {
+                    return "错误: 模式必须是 'char', 'word', 'sentence', 'punctuation', 'word_and_punctuation', 'natural' 或 'quotes'";
+                }
+                
+                // 恢复引号内的内容（仅针对非quotes模式）
+                if (mode !== 'quotes') {
+                    for (let i = 0; i < quotedTexts.length; i++) {
+                        const placeholder = `__QUOTED_TEXT_${i}__`;
+                        const quotedContent = quotedTexts[i];
+                        
+                        // 恢复引号内容，并按照字符数分段处理
+                        if (quotedContent.length > maxWidth) {
+                            // 如果引号内内容较长，按字符分段
+                            const parts = [];
+                            for (let j = 0; j < quotedContent.length; j += maxWidth) {
+                                parts.push(quotedContent.substring(j, j + maxWidth));
+                            }
+                            // 为每个部分添加引号
+                            const quotedParts = parts.map((part, index) => {
+                                // 第一部分加开始引号，最后部分加结束引号，中间部分不添加
+                                if (parts.length === 1) return `"${part}"`; // 只有一部分的情况
+                                if (index === 0) return `"${part}`; // 第一部分
+                                if (index === parts.length - 1) return `${part}"`; // 最后部分
+                                return part; // 中间部分
+                            });
+                            result = result.replace(placeholder, quotedParts.join('\n'));
+                        } else {
+                            // 如果引号内内容较短，直接恢复
+                            result = result.replace(placeholder, `"${quotedContent}"`);
+                        }
+                    }
+                }
+                
+                return result;
+            }
+            
+            // 初始格式化一次
+            formatBtn.click();
+        });
+    </script>
+</body>
+</html> 
