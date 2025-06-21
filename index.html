@@ -668,40 +668,32 @@
                     result = sentences.join('\n');
                     
                 } else if (mode === 'punctuation') {
-                    // 按标点符号分段 - 重写逻辑：标点符号 → 自定义断句 → 中位数分段
+                    // 按标点符号分段 - 使用逐字符扫描方法，避免split可能导致的字符丢失
                     
                     // 第1步：按标点符号分段（底层逻辑，优先级最高）
-                    // 完全按标点符号分段，不考虑最大宽度限制
-                    // 匹配中英文各种标点符号，但排除词中的撇号、引号和成对符号
-                    // 注意：由于成对符号已经被保护，这里只处理单独的标点符号
-                    let punctuationSegments = processedText.split(/([,.;:!?，。；：！？、]|(?<!\w)'(?!\w)|(?<!\w)'(?!\w))/);
-                    
-                    // 清理和重组分段，将标点符号与前面的文本合并
+                    // 使用逐字符扫描的方法，确保不会丢失任何字符
                     const punctuationBasedSegments = [];
                     let currentSegment = '';
                     
-                    for (let i = 0; i < punctuationSegments.length; i++) {
-                        const part = punctuationSegments[i];
+                    // 定义标点符号集合
+                    const punctuationChars = new Set(['，', '。', '；', '：', '！', '？', '、', ',', '.', ';', ':', '!', '?']);
+                    
+                    for (let i = 0; i < processedText.length; i++) {
+                        const char = processedText[i];
+                        currentSegment += char;
                         
-                        if (!part) continue; // 跳过空字符串
-                        
-                        // 如果是标点符号，与前面的内容合并
-                        if (/^[,.;:!?，。；：！？、'']$/.test(part)) {
-                            currentSegment += part;
-                            // 标点符号后结束当前分段
-                            if (currentSegment.trim()) {
-                                punctuationBasedSegments.push(currentSegment.trim());
+                        // 如果遇到标点符号，结束当前分段
+                        if (punctuationChars.has(char)) {
+                            if (currentSegment.length > 0) {
+                                punctuationBasedSegments.push(currentSegment);
                             }
                             currentSegment = '';
-                        } else {
-                            // 如果不是标点符号，累积到当前分段
-                            currentSegment += part;
                         }
                     }
                     
-                    // 处理最后一个分段
-                    if (currentSegment.trim()) {
-                        punctuationBasedSegments.push(currentSegment.trim());
+                    // 处理最后一个分段（如果没有以标点符号结尾）
+                    if (currentSegment.length > 0) {
+                        punctuationBasedSegments.push(currentSegment);
                     }
                     
                     // 第2步：在标点符号分段基础上，对超过字数的段落应用自定义断句词
@@ -728,8 +720,8 @@
                             if (hasCustomBreak) {
                                 const customSplitSegments = processedSegment.split('\n');
                                 for (const subSegment of customSplitSegments) {
-                                    if (subSegment.trim()) {
-                                        intermediateSegments.push(subSegment.trim());
+                                    if (subSegment.length > 0) { // 改用length检查
+                                        intermediateSegments.push(subSegment);
                                     }
                                 }
                             } else {
@@ -779,8 +771,17 @@
                         }
                         
                         // 进行分割
-                        const firstPart = text.substring(0, bestSplitIndex).trim();
-                        const secondPart = text.substring(bestSplitIndex + 1).trim();
+                        let firstPart, secondPart;
+                        
+                        if (text[bestSplitIndex] === ' ') {
+                            // 如果分割点是空格，跳过空格
+                            firstPart = text.substring(0, bestSplitIndex).trim();
+                            secondPart = text.substring(bestSplitIndex + 1).trim();
+                        } else {
+                            // 如果分割点不是空格（没找到空格，使用中位数分割），不要跳过字符
+                            firstPart = text.substring(0, bestSplitIndex).trim();
+                            secondPart = text.substring(bestSplitIndex).trim();
+                        }
                         
                         // 递归处理每一部分，确保都符合宽度要求
                         const results = [];
@@ -797,11 +798,15 @@
                     // 对所有中间段落进行最终的宽度检查和中位数分段
                     let finalSegments = [];
                     for (const segment of intermediateSegments) {
-                        if (segment.length <= maxWidth) {
-                            finalSegments.push(segment);
+                        // 在检查长度前先trim，但不在中间过程中trim
+                        const trimmedSegment = segment.trim();
+                        if (trimmedSegment.length === 0) continue; // 跳过空段落
+                        
+                        if (trimmedSegment.length <= maxWidth) {
+                            finalSegments.push(trimmedSegment);
                         } else {
                             // 使用递归函数处理超长段落
-                            const splitResults = recursiveMidPointSplit(segment);
+                            const splitResults = recursiveMidPointSplit(trimmedSegment);
                             finalSegments.push(...splitResults);
                         }
                     }
@@ -889,25 +894,26 @@
                     for (let i = 0; i < punctuationSegments.length; i++) {
                         const part = punctuationSegments[i];
                         
-                        if (!part) continue; // 跳过空字符串
+                        // 注意：不能简单跳过空字符串，因为这可能导致字符丢失
+                        if (part === undefined || part === null) continue;
                         
                         // 如果是标点符号，与前面的内容合并
                         if (/^[,.;:!?，。；：！？、'']$/.test(part)) {
                             currentSegment += part;
                             // 标点符号后结束当前分段
-                            if (currentSegment.trim()) {
-                                cleanedSegments.push(currentSegment.trim());
+                            if (currentSegment.length > 0) { // 改用length检查，避免trim丢失字符
+                                cleanedSegments.push(currentSegment);
                             }
                             currentSegment = '';
                         } else {
-                            // 如果不是标点符号，累积到当前分段
+                            // 如果不是标点符号，累积到当前分段（包括空字符串，避免丢失字符）
                             currentSegment += part;
                         }
                     }
                     
                     // 处理最后一个分段
-                    if (currentSegment.trim()) {
-                        cleanedSegments.push(currentSegment.trim());
+                    if (currentSegment.length > 0) { // 改用length检查，避免trim丢失字符
+                        cleanedSegments.push(currentSegment);
                     }
                     
                     // 第二步：判断每个分段的字数，对超过限定字数的分段进行自然语言处理
