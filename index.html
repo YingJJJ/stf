@@ -581,19 +581,48 @@
             
             // 格式化函数
             function formatText(text, maxWidth = 80, mode = 'char', customBreakWords = []) {
-                // 预处理：将引号内的内容保护起来（quotes模式除外）
-                const quotedTexts = [];
+                // 预处理：保护成对符号内的内容
+                const protectedSymbols = [];
                 let processedText = text;
                 
-                // 只有在非quotes模式下才预处理引号内容
+                // 只有在非quotes模式下才预处理成对符号（quotes模式需要特殊处理引号）
                 if (mode !== 'quotes') {
-                    processedText = text.replace(/"([^"]*)"/g, function(match, content) {
-                        // 将引号内容替换为特殊标记
-                        const placeholder = `__QUOTED_TEXT_${quotedTexts.length}__`;
-                        quotedTexts.push(content);
-                        return placeholder;
-                    });
+                    // 保护各种成对符号内的内容（使用简单的一次性替换）
+                    const protectSymbols = [
+                        // 中文书名号（优先处理）
+                        { pattern: /《[^《》]*》/g, type: 'bookTitle' },
+                        // 中文双引号
+                        { pattern: /"[^"]*"/g, type: 'chineseQuote' },
+                        // 英文双引号
+                        { pattern: /"[^"]*"/g, type: 'englishQuote' },
+                        // 中文单引号
+                        { pattern: /'[^']*'/g, type: 'chineseSingleQuote' },
+                        // 英文单引号（但排除撇号）
+                        { pattern: /(?<!\w)'[^']*'(?!\w)/g, type: 'englishSingleQuote' },
+                        // 中文括号
+                        { pattern: /（[^（）]*）/g, type: 'chineseParen' },
+                        // 英文括号
+                        { pattern: /\([^()]*\)/g, type: 'englishParen' },
+                        // 中文方括号
+                        { pattern: /【[^【】]*】/g, type: 'chineseBracket' },
+                        // 英文方括号
+                        { pattern: /\[[^\[\]]*\]/g, type: 'englishBracket' },
+                        // 花括号
+                        { pattern: /\{[^{}]*\}/g, type: 'curlyBrace' }
+                    ];
+                    
+                    // 保护成对符号
+                    for (const symbolDef of protectSymbols) {
+                        processedText = processedText.replace(symbolDef.pattern, function(match) {
+                            const placeholder = `__PROTECTED_${protectedSymbols.length}__`;
+                            protectedSymbols.push(match);
+                            return placeholder;
+                        });
+                    }
                 }
+                
+                // 注意：引号已经在成对符号中处理过了，这里不需要额外处理
+                const quotedTexts = [];
                 
                 let result;
                 
@@ -643,8 +672,9 @@
                     
                     // 第1步：按标点符号分段（底层逻辑，优先级最高）
                     // 完全按标点符号分段，不考虑最大宽度限制
-                    // 匹配中英文各种标点符号，但排除词中的撇号和引号
-                    let punctuationSegments = processedText.split(/([,.;:!?，。；：！？、（）《》【】]|(?<!\w)'(?!\w)|(?<!\w)'(?!\w))/);
+                    // 匹配中英文各种标点符号，但排除词中的撇号、引号和成对符号
+                    // 注意：由于成对符号已经被保护，这里只处理单独的标点符号
+                    let punctuationSegments = processedText.split(/([,.;:!?，。；：！？、]|(?<!\w)'(?!\w)|(?<!\w)'(?!\w))/);
                     
                     // 清理和重组分段，将标点符号与前面的文本合并
                     const punctuationBasedSegments = [];
@@ -656,7 +686,7 @@
                         if (!part) continue; // 跳过空字符串
                         
                         // 如果是标点符号，与前面的内容合并
-                        if (/^[,.;:!?，。；：！？、（）《》【】'']$/.test(part)) {
+                        if (/^[,.;:!?，。；：！？、'']$/.test(part)) {
                             currentSegment += part;
                             // 标点符号后结束当前分段
                             if (currentSegment.trim()) {
@@ -780,8 +810,9 @@
                     
                 } else if (mode === 'word_and_punctuation') {
                     // 按单词和标点符号分段
-                    // 先按标点符号分段，但排除词中的撇号(apostrophe)和引号
-                    let text = processedText.replace(/([,.;:!?，。；：！？、（）《》【】]|(?<!\w)'(?!\w)|(?<!\w)'(?!\w))/g, '$1\n');
+                    // 先按标点符号分段，但排除词中的撇号(apostrophe)、引号和成对符号
+                    // 注意：由于成对符号已经被保护，这里只处理单独的标点符号
+                    let text = processedText.replace(/([,.;:!?，。；：！？、]|(?<!\w)'(?!\w)|(?<!\w)'(?!\w))/g, '$1\n');
                     
                     // 应用自定义断句词 - 只对超过最大宽度的段落应用
                     if (customBreakWords.length > 0) {
@@ -847,8 +878,9 @@
                     // 自然语言分段 - 重写逻辑：先严格按标点符号分段，再对超过字数的分段进行自然语言处理
                     
                     // 第一步：严格按照标点符号进行分段（底层逻辑，不可改动）
-                    // 匹配中英文各种标点符号，但排除词中的撇号和引号
-                    let punctuationSegments = processedText.split(/([,.;:!?，。；：！？、（）《》【】]|(?<!\w)'(?!\w)|(?<!\w)'(?!\w))/);
+                    // 匹配中英文各种标点符号，但排除词中的撇号、引号和成对符号
+                    // 注意：由于成对符号已经被保护，这里只处理单独的标点符号
+                    let punctuationSegments = processedText.split(/([,.;:!?，。；：！？、]|(?<!\w)'(?!\w)|(?<!\w)'(?!\w))/);
                     
                     // 清理和重组分段，将标点符号与前面的文本合并
                     const cleanedSegments = [];
@@ -860,7 +892,7 @@
                         if (!part) continue; // 跳过空字符串
                         
                         // 如果是标点符号，与前面的内容合并
-                        if (/^[,.;:!?，。；：！？、（）《》【】'']$/.test(part)) {
+                        if (/^[,.;:!?，。；：！？、'']$/.test(part)) {
                             currentSegment += part;
                             // 标点符号后结束当前分段
                             if (currentSegment.trim()) {
@@ -1062,6 +1094,7 @@
                     
                 } else if (mode === 'quotes') {
                     // 按引号断句 - 在每个双引号结束后断句
+                    // 注意：在quotes模式下，我们直接使用原始文本，因为这个模式专门处理引号
                     
                     // 在引号后断句
                     result = text.replace(/"([^"]*)"/g, '"$1"\n');
@@ -1116,32 +1149,19 @@
                     return "错误: 模式必须是 'char', 'word', 'sentence', 'punctuation', 'word_and_punctuation', 'natural' 或 'quotes'";
                 }
                 
-                // 恢复引号内的内容（仅针对非quotes模式）
+                // 恢复保护的成对符号内容（仅针对非quotes模式）
                 if (mode !== 'quotes') {
-                    for (let i = 0; i < quotedTexts.length; i++) {
-                        const placeholder = `__QUOTED_TEXT_${i}__`;
-                        const quotedContent = quotedTexts[i];
-                        
-                        // 恢复引号内容，并按照字符数分段处理
-                        if (quotedContent.length > maxWidth) {
-                            // 如果引号内内容较长，按字符分段
-                            const parts = [];
-                            for (let j = 0; j < quotedContent.length; j += maxWidth) {
-                                parts.push(quotedContent.substring(j, j + maxWidth));
-                            }
-                            // 为每个部分添加引号
-                            const quotedParts = parts.map((part, index) => {
-                                // 第一部分加开始引号，最后部分加结束引号，中间部分不添加
-                                if (parts.length === 1) return `"${part}"`; // 只有一部分的情况
-                                if (index === 0) return `"${part}`; // 第一部分
-                                if (index === parts.length - 1) return `${part}"`; // 最后部分
-                                return part; // 中间部分
-                            });
-                            result = result.replace(placeholder, quotedParts.join('\n'));
-                        } else {
-                            // 如果引号内内容较短，直接恢复
-                            result = result.replace(placeholder, `"${quotedContent}"`);
-                        }
+                    // 按倒序恢复保护的符号，避免嵌套替换问题
+                    for (let i = protectedSymbols.length - 1; i >= 0; i--) {
+                        const placeholder = `__PROTECTED_${i}__`;
+                        const originalContent = protectedSymbols[i];
+                        // 使用简单的字符串替换
+                        result = result.split(placeholder).join(originalContent);
+                    }
+                    
+                    // 检查是否还有未恢复的占位符（调试用）
+                    if (result.includes('__PROTECTED_')) {
+                        console.warn('发现未恢复的保护符号占位符:', result.match(/__PROTECTED_\d+__/g));
                     }
                 }
                 
