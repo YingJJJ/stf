@@ -147,12 +147,16 @@
             padding: 1.5rem;
             border-radius: 10px;
             min-height: 200px;
+            max-height: 810px;
             overflow-x: auto;
             overflow-y: auto;
             font-family: 'Courier New', 'Monaco', monospace;
             border: 1px solid #e3e6f0;
             font-size: 0.9rem;
             line-height: 1.4;
+            resize: vertical;
+            width: 100%;
+            box-sizing: border-box;
         }
         
         .icon-text {
@@ -360,7 +364,7 @@
                     </div>
                 </div>
                 <div class="card-body">
-                    <div id="output-text" class="result-area"></div>
+                    <textarea id="output-text" class="result-area form-control" placeholder="格式化后的文本将显示在这里，您可以直接编辑..."></textarea>
                 </div>
             </div>
         </div>
@@ -378,6 +382,32 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // 智能调整textarea高度的函数
+            function smartResizeTextarea(textarea) {
+                // 临时重置高度以获取正确的scrollHeight
+                textarea.style.height = 'auto';
+                
+                // 设置最小和最大高度
+                const minHeight = 200;
+                const maxHeight = 810;
+                
+                // 获取内容实际高度
+                const contentHeight = textarea.scrollHeight;
+                
+                // 计算最终高度：在最小值和最大值之间
+                const finalHeight = Math.min(Math.max(contentHeight, minHeight), maxHeight);
+                
+                // 设置新高度
+                textarea.style.height = finalHeight + 'px';
+                
+                // 如果内容超过最大高度，显示滚动条
+                if (contentHeight > maxHeight) {
+                    textarea.style.overflowY = 'auto';
+                } else {
+                    textarea.style.overflowY = 'hidden';
+                }
+            }
+            
             // 显示欢迎弹窗
             Swal.fire({
                 title: '🎉 欢迎使用文本格式化工具',
@@ -419,6 +449,14 @@
             const copyBtn = document.getElementById('copy-btn');
             const removePunctuationBtn = document.getElementById('remove-punctuation-btn');
             
+            // 为输出文本框添加智能调整高度功能
+            outputText.addEventListener('input', function() {
+                smartResizeTextarea(this);
+            });
+            
+            // 初始化输出文本框高度
+            smartResizeTextarea(outputText);
+            
             // 加载保存的断句词
             if (localStorage.getItem('customBreakWords')) {
                 customBreakWordsInput.value = localStorage.getItem('customBreakWords');
@@ -446,7 +484,7 @@
             
             // 去除标点符号功能事件
             removePunctuationBtn.addEventListener('click', function() {
-                let currentText = outputText.textContent;
+                let currentText = outputText.value;
                 
                 if (!currentText || !currentText.trim()) {
                     alert('没有内容可以处理，请先格式化文本！');
@@ -469,7 +507,10 @@
                  }
                 
                 const processedText = removePunctuationKeepPairs(currentText);
-                outputText.textContent = processedText;
+                outputText.value = processedText;
+                
+                // 智能调整文本框高度
+                smartResizeTextarea(outputText);
                 
                 // 临时改变按钮文字和颜色提供反馈
                 const originalText = removePunctuationBtn.innerHTML;
@@ -485,7 +526,7 @@
             
             // 复制功能事件
             copyBtn.addEventListener('click', async function() {
-                const textToCopy = outputText.textContent;
+                const textToCopy = outputText.value;
                 
                 if (!textToCopy || !textToCopy.trim()) {
                     alert('没有内容可以复制，请先格式化文本！');
@@ -548,7 +589,9 @@
                     const width = parseInt(maxWidth.value);
                     
                     if (!text.trim()) {
-                        outputText.textContent = "请输入要格式化的文本";
+                        outputText.value = "请输入要格式化的文本";
+                        // 智能调整文本框高度
+                        smartResizeTextarea(outputText);
                         return;
                     }
                     
@@ -572,10 +615,16 @@
                     
                     // 格式化文本
                     const result = formatText(processedText, width, mode, customBreakWords);
-                    outputText.textContent = result;
+                    outputText.value = result;
+                    
+                    // 智能调整文本框高度
+                    smartResizeTextarea(outputText);
                 } catch (error) {
                     console.error('格式化文本时发生错误:', error);
-                    outputText.textContent = "格式化失败，请检查输入内容或刷新页面重试";
+                    outputText.value = "格式化失败，请检查输入内容或刷新页面重试";
+                    
+                    // 智能调整文本框高度
+                    smartResizeTextarea(outputText);
                 }
             });
             
