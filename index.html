@@ -644,10 +644,10 @@
                         { pattern: /"[^"]*"/g, type: 'chineseQuote' },
                         // 英文双引号
                         { pattern: /"[^"]*"/g, type: 'englishQuote' },
-                        // 中文单引号
-                        { pattern: /'[^']*'/g, type: 'chineseSingleQuote' },
-                        // 英文单引号（但排除撇号）
-                        { pattern: /(?<!\w)'[^']*'(?!\w)/g, type: 'englishSingleQuote' },
+                        // 英文单引号（严格匹配：避免撇号，只匹配真正的引号对）
+                        { pattern: /(?<=[\s,.;:!?，。；：！？、\-—])'[^']*?'(?=[\s,.;:!?，。；：！？、\-—]|$)/g, type: 'englishSingleQuote' },
+                        // 中文单引号（更严格的匹配，避免与撇号冲突）
+                        { pattern: /(?<=[\s,.;:!?，。；：！？、\-—]|^)'[^']*?'(?=[\s,.;:!?，。；：！？、\-—]|$)/g, type: 'chineseSingleQuote' },
                         // 中文括号
                         { pattern: /（[^（）]*）/g, type: 'chineseParen' },
                         // 英文括号
