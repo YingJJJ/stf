@@ -779,38 +779,65 @@
                     let intermediateSegments = [];
                     
                     for (const segment of punctuationBasedSegments) {
+                        const trimmedSegment = segment.trim();
+                        
                         // 先检查分段长度是否超过最大宽度限制
-                        if (segment.trim().length > maxWidth && customBreakWords.length > 0) {
+                        if (trimmedSegment.length > maxWidth && customBreakWords.length > 0) {
                             // 只对超过宽度限制的分段应用自定义断句词
-                            let processedSegment = segment;
+                            let processedSegment = trimmedSegment;
                             let hasCustomBreak = false;
+                            
+                            // 智能应用自定义断句词：只选择一个最佳的分割点
+                            let bestSplitPoint = null;
+                            let bestDistance = Infinity;
+                            const targetPosition = trimmedSegment.length / 2; // 目标位置：中间
                             
                             for (const word of customBreakWords) {
                                 if (word) {
-                                    const regex = new RegExp(`(\\b${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b)`, 'g');
-                                    const beforeReplace = processedSegment;
-                                    processedSegment = processedSegment.replace(regex, '\n$1');
-                                    if (processedSegment !== beforeReplace) {
-                                        hasCustomBreak = true;
+                                    // 改进正则表达式，更好地处理中文和边界情况
+                                    const escapedWord = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                                    // 使用更宽松的匹配，不严格要求单词边界（适合中文）
+                                    const regex = new RegExp(`(${escapedWord})`, 'g');
+                                    
+                                    // 找到所有匹配位置
+                                    let match;
+                                    while ((match = regex.exec(processedSegment)) !== null) {
+                                        const endIndex = match.index + match[0].length;
+                                        const distance = Math.abs(endIndex - targetPosition);
+                                        
+                                        // 记录距离中间位置最近的匹配
+                                        if (distance < bestDistance) {
+                                            bestDistance = distance;
+                                            bestSplitPoint = endIndex;
+                                        }
                                     }
                                 }
                             }
                             
-                            // 如果应用了自定义断句词，按换行符分割
-                            if (hasCustomBreak) {
-                                const customSplitSegments = processedSegment.split('\n');
-                                for (const subSegment of customSplitSegments) {
-                                    if (subSegment.trim().length > 0) {
-                                        intermediateSegments.push(subSegment);
-                                    }
+                            // 如果找到了合适的分割点，进行分割
+                            if (bestSplitPoint !== null) {
+                                const beforePart = processedSegment.substring(0, bestSplitPoint).trim();
+                                const afterPart = processedSegment.substring(bestSplitPoint).trim();
+                                
+                                // 只有当分割有意义时才进行（两部分都不为空，且分割是有效的）
+                                if (beforePart && afterPart && 
+                                    beforePart.length > maxWidth * 0.2 && afterPart.length > maxWidth * 0.2) {
+                                    
+                                    intermediateSegments.push(beforePart);
+                                    intermediateSegments.push(afterPart);
+                                    hasCustomBreak = true;
                                 }
-                            } else {
-                                // 没有应用自定义断句词（没有匹配到），保持原样
-                                intermediateSegments.push(segment);
+                            }
+                            
+                            // 如果没有成功应用自定义断句词，保持原样（将在第三步处理）
+                            if (!hasCustomBreak) {
+                                intermediateSegments.push(trimmedSegment);
                             }
                         } else {
                             // 分段长度未超过限制或没有自定义断句词，直接添加
-                            intermediateSegments.push(segment);
+                            if (trimmedSegment.length > 0) {
+                                intermediateSegments.push(trimmedSegment);
+                            }
                         }
                     }
                     
