@@ -684,30 +684,8 @@
                     result = resultArray.join('\n');
                     
                 } else if (mode === 'word') {
-                    // 按单词分段，避免单词被截断
-                    const words = processedText.split(/\s+/);
-                    const lines = [];
-                    let currentLine = [];
-                    let currentLength = 0;
-                    
-                    for (const word of words) {
-                        const wordLength = word.length;
-                        const spaceLength = currentLength > 0 ? 1 : 0;
-                        
-                        if (currentLength + wordLength + spaceLength <= maxWidth) {
-                            currentLine.push(word);
-                            currentLength += wordLength + spaceLength;
-                        } else {
-                            lines.push(currentLine.join(' '));
-                            currentLine = [word];
-                            currentLength = wordLength;
-                        }
-                    }
-                    
-                    if (currentLine.length > 0) {
-                        lines.push(currentLine.join(' '));
-                    }
-                    
+                    // 按单词分段，避免单词被截断，同时保护占位符
+                    const lines = safeWordSplit(processedText, maxWidth);
                     result = lines.join('\n');
                     
                 } else if (mode === 'sentence') {
@@ -784,7 +762,122 @@
                     }
                     
                     // 第3步：对所有段落进行中位数分段检查，确保每一行都符合宽度要求
-                    // 递归中位数分段函数，确保每一行都严格符合宽度要求
+                    // 彻底修复占位符问题：如果文本包含占位符，先恢复再分段，最后重新保护
+                    function safeSplitWithPlaceholderProtection(text) {
+                        // 检查是否包含占位符
+                        const hasPlaceholders = /__PROTECTED_\d+__/.test(text);
+                        
+                        if (!hasPlaceholders) {
+                            // 没有占位符，直接使用原来的递归分段
+                            return recursiveMidPointSplit(text);
+                        }
+                        
+                        // 有占位符，需要特殊处理
+                        // 1. 先临时恢复占位符为原始内容
+                        let tempText = text;
+                        const placeholderMapping = new Map();
+                        
+                        // 提取并恢复所有占位符
+                        const placeholderRegex = /__PROTECTED_(\d+)__/g;
+                        let match;
+                        while ((match = placeholderRegex.exec(text)) !== null) {
+                            const placeholderIndex = parseInt(match[1]);
+                            if (placeholderIndex < protectedSymbols.length) {
+                                const originalContent = protectedSymbols[placeholderIndex];
+                                placeholderMapping.set(match[0], originalContent);
+                                tempText = tempText.replace(match[0], originalContent);
+                            }
+                        }
+                        
+                        // 2. 对恢复后的文本进行分段
+                        const segments = recursiveMidPointSplit(tempText);
+                        
+                        // 3. 将分段结果重新转换回占位符形式
+                        const resultSegments = segments.map(segment => {
+                            let result = segment;
+                            for (const [placeholder, original] of placeholderMapping) {
+                                // 注意：要考虑原始内容可能在分段中被分割的情况
+                                result = result.split(original).join(placeholder);
+                            }
+                            return result;
+                        });
+                        
+                        return resultSegments;
+                    }
+                    
+                    // 安全的单词分段函数，保护占位符不被截断
+                    function safeWordSplit(text, maxWidth) {
+                        // 检查是否包含占位符
+                        const hasPlaceholders = /__PROTECTED_\d+__/.test(text);
+                        
+                        if (!hasPlaceholders) {
+                            // 没有占位符，直接进行正常的单词分段
+                            return normalWordSplit(text, maxWidth);
+                        }
+                        
+                        // 有占位符，需要特殊处理
+                        // 1. 先临时恢复占位符为原始内容
+                        let tempText = text;
+                        const placeholderMapping = new Map();
+                        
+                        // 提取并恢复所有占位符
+                        const placeholderRegex = /__PROTECTED_(\d+)__/g;
+                        let match;
+                        while ((match = placeholderRegex.exec(text)) !== null) {
+                            const placeholderIndex = parseInt(match[1]);
+                            if (placeholderIndex < protectedSymbols.length) {
+                                const originalContent = protectedSymbols[placeholderIndex];
+                                placeholderMapping.set(match[0], originalContent);
+                                tempText = tempText.replace(match[0], originalContent);
+                            }
+                        }
+                        
+                        // 2. 对恢复后的文本进行单词分段
+                        const segments = normalWordSplit(tempText, maxWidth);
+                        
+                        // 3. 将分段结果重新转换回占位符形式
+                        const resultSegments = segments.map(segment => {
+                            let result = segment;
+                            for (const [placeholder, original] of placeholderMapping) {
+                                result = result.split(original).join(placeholder);
+                            }
+                            return result;
+                        });
+                        
+                        return resultSegments;
+                    }
+                    
+                    // 普通的单词分段函数
+                    function normalWordSplit(text, maxWidth) {
+                        const words = text.split(/\s+/);
+                        const lines = [];
+                        let currentLine = [];
+                        let currentLength = 0;
+                        
+                        for (const word of words) {
+                            const wordLength = word.length;
+                            const spaceLength = currentLength > 0 ? 1 : 0;
+                            
+                            if (currentLength + wordLength + spaceLength <= maxWidth) {
+                                currentLine.push(word);
+                                currentLength += wordLength + spaceLength;
+                            } else {
+                                if (currentLine.length > 0) {
+                                    lines.push(currentLine.join(' '));
+                                }
+                                currentLine = [word];
+                                currentLength = wordLength;
+                            }
+                        }
+                        
+                        if (currentLine.length > 0) {
+                            lines.push(currentLine.join(' '));
+                        }
+                        
+                        return lines;
+                    }
+                    
+                    // 递归中位数分段函数（用于没有占位符的文本）
                     function recursiveMidPointSplit(text) {
                         if (text.length <= maxWidth) {
                             return [text];
@@ -854,8 +947,8 @@
                         if (trimmedSegment.length <= maxWidth) {
                             finalSegments.push(trimmedSegment);
                         } else {
-                            // 使用递归函数处理超长段落
-                            const splitResults = recursiveMidPointSplit(trimmedSegment);
+                            // 使用安全的递归函数处理超长段落，保护占位符
+                            const splitResults = safeSplitWithPlaceholderProtection(trimmedSegment);
                             finalSegments.push(...splitResults);
                         }
                     }
@@ -896,33 +989,11 @@
                     const segments = text.split('\n');
                     const resultArray = [];
                     
-                    // 对每个分段再按单词分段
+                    // 对每个分段再按单词分段，使用安全函数保护占位符
                     for (const segment of segments) {
                         if (!segment.trim()) continue;
                         
-                        const words = segment.split(/\s+/);
-                        const lines = [];
-                        let currentLine = [];
-                        let currentLength = 0;
-                        
-                        for (const word of words) {
-                            const wordLength = word.length;
-                            const spaceLength = currentLength > 0 ? 1 : 0;
-                            
-                            if (currentLength + wordLength + spaceLength <= maxWidth) {
-                                currentLine.push(word);
-                                currentLength += wordLength + spaceLength;
-                            } else {
-                                lines.push(currentLine.join(' '));
-                                currentLine = [word];
-                                currentLength = wordLength;
-                            }
-                        }
-                        
-                        if (currentLine.length > 0) {
-                            lines.push(currentLine.join(' '));
-                        }
-                        
+                        const lines = safeWordSplit(segment, maxWidth);
                         resultArray.push(lines.join('\n'));
                     }
                     
@@ -995,30 +1066,9 @@
                                 if (subSegment.length <= maxWidth) {
                                     finalSegments.push(subSegment.trim());
                                 } else {
-                                    // 如果子段仍然超长，用单词分段
-                                    const words = subSegment.trim().split(/\s+/);
-                                    let currentLine = [];
-                                    let currentLength = 0;
-                                    
-                                    for (const word of words) {
-                                        const wordLength = word.length;
-                                        const spaceLength = currentLength > 0 ? 1 : 0;
-                                        
-                                        if (currentLength + wordLength + spaceLength <= maxWidth) {
-                                            currentLine.push(word);
-                                            currentLength += wordLength + spaceLength;
-                                        } else {
-                                            if (currentLine.length > 0) {
-                                                finalSegments.push(currentLine.join(' '));
-                                            }
-                                            currentLine = [word];
-                                            currentLength = wordLength;
-                                        }
-                                    }
-                                    
-                                    if (currentLine.length > 0) {
-                                        finalSegments.push(currentLine.join(' '));
-                                    }
+                                    // 如果子段仍然超长，用安全的单词分段
+                                    const lines = safeWordSplit(subSegment.trim(), maxWidth);
+                                    finalSegments.push(...lines);
                                 }
                             }
                         } else {
@@ -1116,30 +1166,9 @@
                                 if (subSegment.length <= maxWidth * 1.2) {
                                     finalSegments.push(subSegment.trim());
                                 } else {
-                                    // 只有显著超长的子段才用单词分段处理
-                                    const words = subSegment.trim().split(/\s+/);
-                                    let currentLine = [];
-                                    let currentLength = 0;
-                                    
-                                    for (const word of words) {
-                                        const wordLength = word.length;
-                                        const spaceLength = currentLength > 0 ? 1 : 0;
-                                        
-                                        if (currentLength + wordLength + spaceLength <= maxWidth) {
-                                            currentLine.push(word);
-                                            currentLength += wordLength + spaceLength;
-                                        } else {
-                                            if (currentLine.length > 0) {
-                                                finalSegments.push(currentLine.join(' '));
-                                            }
-                                            currentLine = [word];
-                                            currentLength = wordLength;
-                                        }
-                                    }
-                                    
-                                    if (currentLine.length > 0) {
-                                        finalSegments.push(currentLine.join(' '));
-                                    }
+                                    // 只有显著超长的子段才用安全的单词分段处理
+                                    const lines = safeWordSplit(subSegment.trim(), maxWidth);
+                                    finalSegments.push(...lines);
                                 }
                             }
                         }
@@ -1167,28 +1196,9 @@
                             
                             // 检查行是否太长，如果是则进一步分段
                             if (line.length > maxWidth) {
-                                // 按单词分段
-                                const words = line.split(/\s+/);
-                                let currentLine = [];
-                                let currentLength = 0;
-                                
-                                for (const word of words) {
-                                    const wordLength = word.length;
-                                    const spaceLength = currentLength > 0 ? 1 : 0;
-                                    
-                                    if (currentLength + wordLength + spaceLength <= maxWidth) {
-                                        currentLine.push(word);
-                                        currentLength += wordLength + spaceLength;
-                                    } else {
-                                        processedLines.push(currentLine.join(' '));
-                                        currentLine = [word];
-                                        currentLength = wordLength;
-                                    }
-                                }
-                                
-                                if (currentLine.length > 0) {
-                                    processedLines.push(currentLine.join(' '));
-                                }
+                                // 在quotes模式下直接使用普通单词分段（不涉及占位符）
+                                const lines = normalWordSplit(line, maxWidth);
+                                processedLines.push(...lines);
                             } else {
                                 processedLines.push(line);
                             }
