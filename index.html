@@ -779,8 +779,9 @@
                     let intermediateSegments = [];
                     
                     for (const segment of punctuationBasedSegments) {
-                        // 如果有自定义断句词，先应用自定义断句词
-                        if (customBreakWords.length > 0) {
+                        // 先检查分段长度是否超过最大宽度限制
+                        if (segment.trim().length > maxWidth && customBreakWords.length > 0) {
+                            // 只对超过宽度限制的分段应用自定义断句词
                             let processedSegment = segment;
                             let hasCustomBreak = false;
                             
@@ -799,16 +800,16 @@
                             if (hasCustomBreak) {
                                 const customSplitSegments = processedSegment.split('\n');
                                 for (const subSegment of customSplitSegments) {
-                                    if (subSegment.length > 0) { // 改用length检查
+                                    if (subSegment.trim().length > 0) {
                                         intermediateSegments.push(subSegment);
                                     }
                                 }
                             } else {
-                                // 没有应用自定义断句词，保持原样
+                                // 没有应用自定义断句词（没有匹配到），保持原样
                                 intermediateSegments.push(segment);
                             }
                         } else {
-                            // 没有自定义断句词，直接添加
+                            // 分段长度未超过限制或没有自定义断句词，直接添加
                             intermediateSegments.push(segment);
                         }
                     }
