@@ -310,7 +310,7 @@
                 <div class="card-body">
                     <div class="row g-3">
                         <div class="col-md-9">
-                            <label for="custom-break-words" class="form-label">自定义断句词（用逗号分隔）:</label>
+                            <label for="custom-break-words" class="form-label">自定义断句词（用英文逗号分隔）:</label>
                             <input type="text" id="custom-break-words" class="form-control" placeholder="输入要作为断句点的单词或短语，如: 例如,比如,例子">
                             <div class="form-text">
                                 <i class="bi bi-info-circle text-primary"></i>
@@ -697,20 +697,72 @@
                 } else if (mode === 'punctuation') {
                     // 按标点符号分段 - 使用逐字符扫描方法，避免split可能导致的字符丢失
                     
+                    // 智能标点符号判断函数
+                    function shouldBreakAtPunctuation(text, index, char) {
+                        // 如果不是标点符号，不分段
+                        const punctuationChars = new Set(['，', '。', '；', '：', '！', '？', '、', ',', '.', ';', ':', '!', '?']);
+                        if (!punctuationChars.has(char)) {
+                            return false;
+                        }
+                        
+                        // 对于点号的特殊处理
+                        if (char === '.') {
+                            // 检查是否是数字序号后的点号（如：1. 2. 10. 等）
+                            const beforeContext = text.substring(Math.max(0, index - 10), index);
+                            if (/\d+$/.test(beforeContext)) {
+                                return false; // 不在数字序号后分段
+                            }
+                            
+                            // 检查是否是常见缩写（如：Mr. Dr. etc. 等）
+                            const beforeWord = beforeContext.match(/\b([A-Za-z]+)$/);
+                            if (beforeWord) {
+                                const word = beforeWord[1].toLowerCase();
+                                const commonAbbreviations = new Set([
+                                    'mr', 'mrs', 'ms', 'dr', 'prof', 'sr', 'jr',
+                                    'st', 'rd', 'nd', 'th', 'ave', 'blvd', 'dept',
+                                    'inc', 'ltd', 'corp', 'co', 'etc', 'vs', 'ie', 'eg',
+                                    'am', 'pm', 'ad', 'bc', 'usa', 'uk', 'ca'
+                                ]);
+                                if (commonAbbreviations.has(word)) {
+                                    return false; // 不在常见缩写后分段
+                                }
+                            }
+                            
+                            // 检查后面的字符，如果紧跟数字或小写字母，可能不是句子结束
+                            if (index + 1 < text.length) {
+                                const nextChar = text[index + 1];
+                                // 如果点号后面紧跟数字或小写字母（没有空格），可能不是句子结束
+                                if (/[0-9a-z]/.test(nextChar)) {
+                                    return false;
+                                }
+                            }
+                        }
+                        
+                        // 对于逗号的特殊处理
+                        if (char === ',' || char === '，') {
+                            // 检查是否在数字中间（如：1,000 或 1,234.56）
+                            const beforeContext = text.substring(Math.max(0, index - 4), index);
+                            const afterContext = text.substring(index + 1, Math.min(text.length, index + 5));
+                            if (/\d+$/.test(beforeContext) && /^\d+/.test(afterContext)) {
+                                return false; // 不在数字中间分段
+                            }
+                        }
+                        
+                        // 其他标点符号正常分段
+                        return true;
+                    }
+                    
                     // 第1步：按标点符号分段（底层逻辑，优先级最高）
                     // 使用逐字符扫描的方法，确保不会丢失任何字符
                     const punctuationBasedSegments = [];
                     let currentSegment = '';
                     
-                    // 定义标点符号集合
-                    const punctuationChars = new Set(['，', '。', '；', '：', '！', '？', '、', ',', '.', ';', ':', '!', '?']);
-                    
                     for (let i = 0; i < processedText.length; i++) {
                         const char = processedText[i];
                         currentSegment += char;
                         
-                        // 如果遇到标点符号，结束当前分段
-                        if (punctuationChars.has(char)) {
+                        // 使用智能判断函数决定是否在此处分段
+                        if (shouldBreakAtPunctuation(processedText, i, char)) {
                             if (currentSegment.length > 0) {
                                 punctuationBasedSegments.push(currentSegment);
                             }
@@ -959,7 +1011,53 @@
                     // 按单词和标点符号分段
                     // 先按标点符号分段，但排除词中的撇号(apostrophe)、引号和成对符号
                     // 注意：由于成对符号已经被保护，这里只处理单独的标点符号
-                    let text = processedText.replace(/([,.;:!?，。；：！？、]|(?<!\w)'(?!\w)|(?<!\w)'(?!\w))/g, '$1\n');
+                    
+                    // 智能替换标点符号，避免在序号、缩写等位置错误分段
+                    let text = processedText.replace(/([,.;:!?，。；：！？、]|(?<!\w)'(?!\w)|(?<!\w)'(?!\w))/g, function(match, p1, offset, string) {
+                        // 对于点号的特殊处理
+                        if (match === '.') {
+                            // 检查是否是数字序号后的点号
+                            const beforeContext = string.substring(Math.max(0, offset - 10), offset);
+                            if (/\d+$/.test(beforeContext)) {
+                                return match; // 不分段，保持原样
+                            }
+                            
+                            // 检查是否是常见缩写
+                            const beforeWord = beforeContext.match(/\b([A-Za-z]+)$/);
+                            if (beforeWord) {
+                                const word = beforeWord[1].toLowerCase();
+                                const commonAbbreviations = new Set([
+                                    'mr', 'mrs', 'ms', 'dr', 'prof', 'sr', 'jr',
+                                    'st', 'rd', 'nd', 'th', 'ave', 'blvd', 'dept',
+                                    'inc', 'ltd', 'corp', 'co', 'etc', 'vs', 'ie', 'eg',
+                                    'am', 'pm', 'ad', 'bc', 'usa', 'uk', 'ca'
+                                ]);
+                                if (commonAbbreviations.has(word)) {
+                                    return match; // 不分段，保持原样
+                                }
+                            }
+                            
+                            // 检查后面的字符
+                            if (offset + 1 < string.length) {
+                                const nextChar = string[offset + 1];
+                                if (/[0-9a-z]/.test(nextChar)) {
+                                    return match; // 不分段，保持原样
+                                }
+                            }
+                        }
+                        
+                        // 对于逗号的特殊处理
+                        if (match === ',' || match === '，') {
+                            const beforeContext = string.substring(Math.max(0, offset - 4), offset);
+                            const afterContext = string.substring(offset + 1, Math.min(string.length, offset + 5));
+                            if (/\d+$/.test(beforeContext) && /^\d+/.test(afterContext)) {
+                                return match; // 不分段，保持原样
+                            }
+                        }
+                        
+                        // 正常情况下在标点符号后分段
+                        return match + '\n';
+                    });
                     
                     // 应用自定义断句词 - 只对超过最大宽度的段落应用
                     if (customBreakWords.length > 0) {
@@ -1003,38 +1101,82 @@
                     // 自然语言分段 - 重写逻辑：先严格按标点符号分段，再对超过字数的分段进行自然语言处理
                     
                     // 第一步：严格按照标点符号进行分段（底层逻辑，不可改动）
-                    // 匹配中英文各种标点符号，但排除词中的撇号、引号和成对符号
-                    // 注意：由于成对符号已经被保护，这里只处理单独的标点符号
-                    let punctuationSegments = processedText.split(/([,.;:!?，。；：！？、]|(?<!\w)'(?!\w)|(?<!\w)'(?!\w))/);
+                    // 使用智能方法识别标点符号，避免在序号、缩写等位置错误分段
                     
-                    // 清理和重组分段，将标点符号与前面的文本合并
-                    const cleanedSegments = [];
-                    let currentSegment = '';
-                    
-                    for (let i = 0; i < punctuationSegments.length; i++) {
-                        const part = punctuationSegments[i];
+                    // 智能标点符号分段函数
+                    function intelligentPunctuationSplit(text) {
+                        const segments = [];
+                        let currentSegment = '';
                         
-                        // 注意：不能简单跳过空字符串，因为这可能导致字符丢失
-                        if (part === undefined || part === null) continue;
-                        
-                        // 如果是标点符号，与前面的内容合并
-                        if (/^[,.;:!?，。；：！？、'']$/.test(part)) {
-                            currentSegment += part;
-                            // 标点符号后结束当前分段
-                            if (currentSegment.length > 0) { // 改用length检查，避免trim丢失字符
-                                cleanedSegments.push(currentSegment);
+                        for (let i = 0; i < text.length; i++) {
+                            const char = text[i];
+                            currentSegment += char;
+                            
+                            // 检查是否应该在当前位置分段
+                            if (shouldBreakAtPunctuation(text, i, char)) {
+                                if (currentSegment.length > 0) {
+                                    segments.push(currentSegment);
+                                }
+                                currentSegment = '';
                             }
-                            currentSegment = '';
-                        } else {
-                            // 如果不是标点符号，累积到当前分段（包括空字符串，避免丢失字符）
-                            currentSegment += part;
                         }
+                        
+                        // 处理最后一个分段
+                        if (currentSegment.length > 0) {
+                            segments.push(currentSegment);
+                        }
+                        
+                        return segments;
                     }
                     
-                    // 处理最后一个分段
-                    if (currentSegment.length > 0) { // 改用length检查，避免trim丢失字符
-                        cleanedSegments.push(currentSegment);
+                    // 智能标点符号判断函数（与punctuation模式相同的逻辑）
+                    function shouldBreakAtPunctuation(text, index, char) {
+                        const punctuationChars = new Set(['，', '。', '；', '：', '！', '？', '、', ',', '.', ';', ':', '!', '?']);
+                        if (!punctuationChars.has(char)) {
+                            return false;
+                        }
+                        
+                        if (char === '.') {
+                            const beforeContext = text.substring(Math.max(0, index - 10), index);
+                            if (/\d+$/.test(beforeContext)) {
+                                return false;
+                            }
+                            
+                            const beforeWord = beforeContext.match(/\b([A-Za-z]+)$/);
+                            if (beforeWord) {
+                                const word = beforeWord[1].toLowerCase();
+                                const commonAbbreviations = new Set([
+                                    'mr', 'mrs', 'ms', 'dr', 'prof', 'sr', 'jr',
+                                    'st', 'rd', 'nd', 'th', 'ave', 'blvd', 'dept',
+                                    'inc', 'ltd', 'corp', 'co', 'etc', 'vs', 'ie', 'eg',
+                                    'am', 'pm', 'ad', 'bc', 'usa', 'uk', 'ca'
+                                ]);
+                                if (commonAbbreviations.has(word)) {
+                                    return false;
+                                }
+                            }
+                            
+                            if (index + 1 < text.length) {
+                                const nextChar = text[index + 1];
+                                if (/[0-9a-z]/.test(nextChar)) {
+                                    return false;
+                                }
+                            }
+                        }
+                        
+                        if (char === ',' || char === '，') {
+                            const beforeContext = text.substring(Math.max(0, index - 4), index);
+                            const afterContext = text.substring(index + 1, Math.min(text.length, index + 5));
+                            if (/\d+$/.test(beforeContext) && /^\d+/.test(afterContext)) {
+                                return false;
+                            }
+                        }
+                        
+                        return true;
                     }
+                    
+                    // 使用智能分段函数
+                    const cleanedSegments = intelligentPunctuationSplit(processedText);
                     
                     // 第二步：判断每个分段的字数，对超过限定字数的分段进行自然语言处理
                     const finalSegments = [];
