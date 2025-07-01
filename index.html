@@ -807,18 +807,18 @@
                                     // 使用更宽松的匹配，不严格要求单词边界（适合中文）
                                     const regex = new RegExp(`(${escapedWord})`, 'g');
                                     
-                                    // 找到所有匹配位置
-                                    let match;
-                                    while ((match = regex.exec(processedSegment)) !== null) {
-                                        const endIndex = match.index + match[0].length;
-                                        const distance = Math.abs(endIndex - targetPosition);
-                                        
-                                        // 记录距离中间位置最近的匹配
-                                        if (distance < bestDistance) {
-                                            bestDistance = distance;
-                                            bestSplitPoint = endIndex;
-                                        }
-                                    }
+                                                            // 找到所有匹配位置
+                        let match;
+                        while ((match = regex.exec(processedSegment)) !== null) {
+                            const startIndex = match.index; // 修改：使用开始位置而不是结束位置
+                            const distance = Math.abs(startIndex - targetPosition);
+                            
+                            // 记录距离中间位置最近的匹配
+                            if (distance < bestDistance) {
+                                bestDistance = distance;
+                                bestSplitPoint = startIndex; // 修改：分割点设为开始位置
+                            }
+                        }
                                 }
                             }
                             
