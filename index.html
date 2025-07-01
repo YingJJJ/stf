@@ -713,6 +713,21 @@
                             return false;
                         }
                         
+                        // 检查是否是项目符号或序号点（•、○、◦、▪、▫、■、□、●、◆、◇、★、☆等）
+                        // 这些符号通常用作列表项目符号，不应该在其后分段
+                        const bulletPoints = new Set(['•', '○', '◦', '▪', '▫', '■', '□', '●', '◆', '◇', '★', '☆']);
+                        if (bulletPoints.has(char)) {
+                            return false; // 不在项目符号处分段
+                        }
+                        
+                        // 检查前面是否有项目符号，如果前面紧挨着项目符号，也不分段
+                        if (index > 0) {
+                            const prevChar = text[index - 1];
+                            if (bulletPoints.has(prevChar)) {
+                                return false; // 项目符号后紧跟的标点符号不分段
+                            }
+                        }
+                        
                         // 对于点号的特殊处理
                         if (char === '.') {
                             // 检查是否是数字序号后的点号（如：1. 2. 10. 等）
@@ -804,8 +819,15 @@
                                 if (word) {
                                     // 改进正则表达式，更好地处理中文和边界情况
                                     const escapedWord = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                                    // 使用更宽松的匹配，不严格要求单词边界（适合中文）
-                                    const regex = new RegExp(`(${escapedWord})`, 'g');
+                                    // 智能匹配：对英文使用单词边界，对中文使用前后非字母数字字符
+                                    let regex;
+                                    if (/^[a-zA-Z]+$/.test(word)) {
+                                        // 纯英文单词，使用单词边界确保完整匹配
+                                        regex = new RegExp(`\\b(${escapedWord})\\b`, 'g');
+                                    } else {
+                                        // 包含中文或其他字符，使用前后边界匹配
+                                        regex = new RegExp(`(?<=^|[\\s\\p{P}])(${escapedWord})(?=[\\s\\p{P}]|$)`, 'gu');
+                                    }
                                     
                                                             // 找到所有匹配位置
                         let match;
@@ -1107,7 +1129,15 @@
                                 // 为每个自定义断句词创建正则表达式并应用
                                 for (const word of customBreakWords) {
                                     if (word) {
-                                        const regex = new RegExp(`(\\b${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b)`, 'g');
+                                        const escapedWord = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                                        let regex;
+                                        if (/^[a-zA-Z]+$/.test(word)) {
+                                            // 纯英文单词，使用单词边界确保完整匹配
+                                            regex = new RegExp(`\\b(${escapedWord})\\b`, 'g');
+                                        } else {
+                                            // 包含中文或其他字符，使用前后边界匹配
+                                            regex = new RegExp(`(?<=^|[\\s\\p{P}])(${escapedWord})(?=[\\s\\p{P}]|$)`, 'gu');
+                                        }
                                         processedLine = processedLine.replace(regex, '\n$1');
                                     }
                                 }
@@ -1172,6 +1202,21 @@
                             return false;
                         }
                         
+                        // 检查是否是项目符号或序号点（•、○、◦、▪、▫、■、□、●、◆、◇、★、☆等）
+                        // 这些符号通常用作列表项目符号，不应该在其后分段
+                        const bulletPoints = new Set(['•', '○', '◦', '▪', '▫', '■', '□', '●', '◆', '◇', '★', '☆']);
+                        if (bulletPoints.has(char)) {
+                            return false; // 不在项目符号处分段
+                        }
+                        
+                        // 检查前面是否有项目符号，如果前面紧挨着项目符号，也不分段
+                        if (index > 0) {
+                            const prevChar = text[index - 1];
+                            if (bulletPoints.has(prevChar)) {
+                                return false; // 项目符号后紧跟的标点符号不分段
+                            }
+                        }
+                        
                         if (char === '.') {
                             const beforeContext = text.substring(Math.max(0, index - 10), index);
                             if (/\d+$/.test(beforeContext)) {
@@ -1231,7 +1276,15 @@
                         if (customBreakWords.length > 0) {
                             for (const word of customBreakWords) {
                                 if (word) {
-                                    const regex = new RegExp(`(\\b${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b)`, 'g');
+                                    const escapedWord = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                                    let regex;
+                                    if (/^[a-zA-Z]+$/.test(word)) {
+                                        // 纯英文单词，使用单词边界确保完整匹配
+                                        regex = new RegExp(`\\b(${escapedWord})\\b`, 'g');
+                                    } else {
+                                        // 包含中文或其他字符，使用前后边界匹配
+                                        regex = new RegExp(`(?<=^|[\\s\\p{P}])(${escapedWord})(?=[\\s\\p{P}]|$)`, 'gu');
+                                    }
                                     processedSegment = processedSegment.replace(regex, '\n$1');
                                 }
                             }
