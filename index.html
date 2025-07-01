@@ -640,24 +640,32 @@
                     const protectSymbols = [
                         // 中文书名号（优先处理）
                         { pattern: /《[^《》]*》/g, type: 'bookTitle' },
-                        // 中文双引号
-                        { pattern: /"[^"]*"/g, type: 'chineseQuote' },
-                        // 英文双引号
-                        { pattern: /"[^"]*"/g, type: 'englishQuote' },
-                        // 英文单引号（严格匹配：避免撇号，只匹配真正的引号对）
-                        { pattern: /(?<=[\s,.;:!?，。；：！？、\-—])'[^']*?'(?=[\s,.;:!?，。；：！？、\-—]|$)/g, type: 'englishSingleQuote' },
-                        // 中文单引号（更严格的匹配，避免与撇号冲突）
-                        { pattern: /(?<=[\s,.;:!?，。；：！？、\-—]|^)'[^']*?'(?=[\s,.;:!?，。；：！？、\-—]|$)/g, type: 'chineseSingleQuote' },
-                        // 中文括号
-                        { pattern: /（[^（）]*）/g, type: 'chineseParen' },
-                        // 英文括号
+                        
+                        // 英文成对标点符号保护（按优先级排序，优先处理更具体的符号）
+                        // 英文尖括号（HTML标签等）
+                        { pattern: /<[^<>]*>/g, type: 'angleBrackets' },
+                        // 英文双引号（加强匹配，避免嵌套问题）
+                        { pattern: /"[^"]*"/g, type: 'englishDoubleQuote' },
+                        // 英文反引号（代码块等）
+                        { pattern: /`[^`]*`/g, type: 'backtick' },
+                        // 英文单引号（改进匹配规则，更精确地识别成对引号）
+                        { pattern: /(?<=^|[\s\(\[\{,.;:!?\-—，。；：！？、])'([^'\\]|\\.)*?'(?=[\s\)\]\},.;:!?\-—，。；：！？、]|$)/g, type: 'englishSingleQuote' },
+                        // 英文括号（圆括号）
                         { pattern: /\([^()]*\)/g, type: 'englishParen' },
-                        // 中文方括号
-                        { pattern: /【[^【】]*】/g, type: 'chineseBracket' },
                         // 英文方括号
-                        { pattern: /\[[^\[\]]*\]/g, type: 'englishBracket' },
-                        // 花括号
-                        { pattern: /\{[^{}]*\}/g, type: 'curlyBrace' }
+                        { pattern: /\[[^\[\]]*\]/g, type: 'englishSquareBracket' },
+                        // 英文花括号
+                        { pattern: /\{[^{}]*\}/g, type: 'englishCurlyBrace' },
+                        
+                        // 中文成对标点符号
+                        // 中文双引号
+                        { pattern: /"[^"]*"/g, type: 'chineseDoubleQuote' },
+                        // 中文单引号（改进匹配规则）
+                        { pattern: /(?<=^|[\s\（\【\{,.;:!?\-—，。；：！？、])'([^'\\]|\\.)*?'(?=[\s\）\】\},.;:!?\-—，。；：！？、]|$)/g, type: 'chineseSingleQuote' },
+                        // 中文括号（圆括号）
+                        { pattern: /（[^（）]*）/g, type: 'chineseParen' },
+                        // 中文方括号
+                        { pattern: /【[^【】]*】/g, type: 'chineseSquareBracket' }
                     ];
                     
                     // 保护成对符号
